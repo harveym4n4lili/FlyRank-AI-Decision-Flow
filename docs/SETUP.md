@@ -69,19 +69,23 @@ Start the app first. If port 3000 is already taken, Next picks another port and 
 - [ ] http://localhost:3000 shows the flow canvas.
 - [ ] http://localhost:3000/api/inngest returns JSON containing `"mode":"dev"` and `"function_count":1` (or more).
 - [ ] In the Inngest dashboard at http://localhost:8288, **Apps** lists `ai-decision-flow` as synced, and **Functions** lists `run-workflow`.
-- [ ] Send a test run and watch it appear under **Runs** in the dashboard:
-
-  ```bash
-  curl -X POST http://localhost:3000/api/workflows/run \
-    -H "content-type: application/json" \
-    -d '{"graph":{"nodes":[],"edges":[]}}'
-  ```
-
-  You should get back `{"eventId":"..."}`.
-
 If the app doesn't show up in the dashboard, click **Sync new app** and enter `http://localhost:3000/api/inngest`.
 
-## 7. Production deploy (only if you deploy)
+## 7. Run a workflow end to end
+
+This step needs a real `OPENAI_API_KEY` (step 4) and both servers running.
+
+- [ ] Open http://localhost:3000. The **Run workflow** panel on the right already contains a sample input.
+- [ ] Click **Run**. The badge should go from **Queued** to **Running**, with a "Deciding: …" line for the current node, then to **Completed**.
+- [ ] Check the results list. With the sample input it should show `1. Classify: YES` followed by `2. Support`, then "Workflow ended after Support".
+- [ ] In the Inngest dashboard at http://localhost:8288, open **Runs**. The newest `run-workflow` run should list one `node-…` step for each decision, each with its YES/NO output.
+- [ ] Optional: edit the input, for example "We're a 500-person company interested in your enterprise plan", and run it again. Classify should now answer NO and the run should go to Sales.
+
+If **Run** is greyed out, the hint underneath says why: the input is empty, there is no start node, or a node in the path has no prompt.
+
+Progress reaches the browser through Inngest Realtime, which the dev server provides. You don't need to set anything up for it locally.
+
+## 8. Production deploy (only if you deploy)
 
 You don't need any of this for local development or the assignment demo.
 
@@ -94,13 +98,19 @@ You don't need any of this for local development or the assignment demo.
   - `INNGEST_SIGNING_KEY`
   - Do **not** set `INNGEST_DEV` in production.
 - [ ] After deploying, sync the app in Inngest Cloud using `https://<your-domain>/api/inngest`. The Vercel integration does this for you automatically.
+- [ ] Run a workflow from the deployed site. Live progress uses Inngest Cloud Realtime, which signs subscription tokens with `INNGEST_SIGNING_KEY`, so that key must be set.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| `Missing required environment variable: OPENAI_API_KEY` | Set the key in `.env.local`, then restart `npm run dev`. |
-| `429 insufficient_quota` from OpenAI | Add credit to your OpenAI account. |
+| A run fails with `Missing required environment variable: OPENAI_API_KEY` | Set the key in `.env.local`, then restart `npm run dev`. |
+| A run fails with `401 Incorrect API key provided` | `.env.local` still has the placeholder key or a revoked one. Replace it and restart `npm run dev`. |
+| A run fails with `429 ... insufficient_quota` | Add credit to your OpenAI account. |
+| A run fails with `404 The model ... does not exist` | Your account can't use `OPENAI_MODEL`. Remove the line to use the default, or pick a model you have access to. |
+| A run stays on **Queued**, then shows "Timed out waiting for the run to finish" | The Inngest dev server isn't running or hasn't synced the app. Start `npm run dev:inngest` and check step 6. |
+| A run shows "Lost connection to the run" | The Realtime connection to the Inngest dev server dropped. Make sure it's still running, then click **Run** again. |
+| A run fails because of a temporary OpenAI error (500, rate limit) | Inngest retries each node up to 2 more times before failing the run. Check **Runs** in the dashboard to see each attempt. |
 | The dashboard shows no apps | Start `npm run dev` before `npm run dev:inngest`, or sync manually (step 6). |
 | `inngest-cli` is not found or fails to run | Re-run the approve and rebuild commands in step 3. |
 | Saved workflow looks wrong after a code change | Click **Reset** in the editor toolbar to restore the sample graph. |

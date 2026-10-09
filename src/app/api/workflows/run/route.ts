@@ -1,10 +1,23 @@
 import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";
-import type { WorkflowGraph } from "@/types/workflow";
+import { validateRunnable } from "@/lib/graph";
+import { isRunKey } from "@/lib/run-key";
+import type { WorkflowRunRequest } from "@/types/workflow";
 
-/** Kicks off a workflow run by sending the graph to Inngest. */
+/** Validates the workflow, then kicks off a run by sending it to Inngest. */
 export async function POST(req: Request) {
-  const { graph } = (await req.json()) as { graph: WorkflowGraph };
-  const { ids } = await inngest.send({ name: "workflow/run", data: { graph } });
+  const body = (await req.json().catch(() => null)) as Partial<WorkflowRunRequest> | null;
+  if (!body?.graph || typeof body.input !== "string" || !isRunKey(body.runKey)) {
+    return NextResponse.json({ error: "Expected { graph, input, runKey }." }, { status: 400 });
+  }
+
+  const problem = validateRunnable(body.graph, body.input);
+  if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+
+  const { graph, input, runKey } = body;
+  const { ids } = await inngest.send({
+    name: "workflow/run",
+    data: { graph, input, runKey } satisfies WorkflowRunRequest,
+  });
   return NextResponse.json({ eventId: ids[0] });
 }

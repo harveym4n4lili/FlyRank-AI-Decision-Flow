@@ -57,37 +57,32 @@ The Inngest dev server finds the app at `http://localhost:3000/api/inngest`. Ope
 
 A branch with no outgoing edge ends the workflow.
 
-## Project structure
+## Running a workflow
+
+Type the text you want the workflow to decide about, such as a customer message, into **Input** in the **Run workflow** panel, then click **Run**. Every node is asked its question about that same input. The panel streams progress as it happens and then lists the steps in the order they ran, with each node's YES/NO answer.
+
+### How execution works
 
 ```
-src/
-├── app/
-│   ├── page.tsx                    # Flow editor page
-│   └── api/
-│       ├── inngest/route.ts        # Serves Inngest functions (GET/POST/PUT)
-│       └── workflows/run/route.ts  # POST { graph } → sends "workflow/run" event
-├── components/
-│   ├── flow/
-│   │   ├── flow-editor-loader.tsx  # Client-only loader (graph lives in localStorage)
-│   │   ├── flow-editor.tsx         # Canvas + inspector layout
-│   │   ├── flow-canvas.tsx         # React Flow canvas, toolbar, connection rules
-│   │   ├── decision-node.tsx       # Decision node with YES/NO handles
-│   │   ├── branch-edge.tsx         # "yes" / "no" edge types
-│   │   └── node-inspector.tsx      # Side panel for editing the selected node
-│   └── ui/                         # shadcn/ui components
-├── inngest/
-│   ├── client.ts                   # Inngest client
-│   └── functions/                  # Inngest functions (run-workflow)
-├── lib/
-│   ├── branches.ts                 # YES/NO branch colours and helpers
-│   ├── graph.ts                    # Node/edge factories, cycle + connection validation
-│   ├── env.ts                      # Server env access
-│   ├── openai.ts                   # OpenAI client
-│   └── sample-workflow.ts          # Starter graph
-├── store/workflow-store.ts         # Zustand graph store, persisted to localStorage
-└── types/workflow.ts               # Graph, node, edge, Branch and Decision types
-docs/SETUP.md                       # Manual setup checklist
+Browser                       Next.js                          Inngest
+───────                       ───────                          ───────
+POST /api/workflows/realtime-token  → subscription token for channel workflow-run:<runKey>
+subscribe(channel)  ◄──────────────────────────────────────────  realtime messages
+POST /api/workflows/run  →  validate graph → send "workflow/run" ─► run-workflow function
+                                                                   for each node, from the start node:
+                                                                     publish status { running, nodeId }
+                                                                     step.run("node-<id>") → OpenAI → YES|NO
+                                                                     publish step { order, decision, nextNodeId }
+                                                                     follow the YES or NO edge
+                                                                   publish status { completed }
 ```
+
+- **One Inngest step per node.** Each decision is `step.run("node-<id>")`, so it is saved once it finishes, retried on its own if it fails, and shown separately in the Inngest dashboard.
+- **Only YES or NO.** The OpenAI call uses Structured Outputs with a JSON schema whose `decision` field is the enum `["YES", "NO"]`, and the reply is checked again before it's used. Anything else is treated as an error and retried.
+- **Branching.** After a node answers, execution follows that node's `yes` or `no` edge. A branch with no edge ends the run.
+- **Execution order.** Every executed node is recorded as `{ order, nodeId, label, prompt, decision, nextNodeId }`. These records are streamed to the browser and returned as the function's output.
+- **Errors.** Temporary failures, such as rate limits or OpenAI 5xx errors, are retried up to 2 times per node. Permanent ones, such as a missing or invalid key or no credit, fail the run immediately. An `onFailure` handler then publishes the error so the panel can show it.
+- **Live progress.** The browser subscribes to a channel for this run before starting it, using a random `runKey`, so it never misses a message.
 
 ## Scripts
 
@@ -102,5 +97,5 @@ docs/SETUP.md                       # Manual setup checklist
 
 - [x] **Phase 1: Setup.** Next.js, React Flow, Inngest, OpenAI SDK, shadcn, env config
 - [x] **Phase 2: Foundations.** Interactive editor: add/connect nodes, edit prompts, YES/NO edge types, local graph state
-- [ ] **Phase 3: Core.** Node → Inngest step, LLM YES/NO decisions, edge traversal, execution order tracking
+- [x] **Phase 3: Core.** Node → Inngest step, LLM YES/NO decisions, edge traversal, execution order tracking
 - [ ] **Phase 4: Polish.** Execution state, logs, save/load, JSON import/export, and more

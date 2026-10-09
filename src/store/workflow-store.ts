@@ -10,10 +10,16 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { isBranch } from "@/lib/branches";
 import { createBranchEdge, createDecisionNode } from "@/lib/graph";
-import { sampleWorkflow } from "@/lib/sample-workflow";
+import { sampleInput, sampleWorkflow } from "@/lib/sample-workflow";
 import type { DecisionEdge, DecisionNode, DecisionNodeData, WorkflowGraph } from "@/types/workflow";
 
+type WorkflowState = WorkflowGraph & {
+  /** Text every decision node is asked about when the workflow runs. */
+  input: string;
+};
+
 type WorkflowActions = {
+  setInput: (input: string) => void;
   onNodesChange: (changes: NodeChange<DecisionNode>[]) => void;
   onEdgesChange: (changes: EdgeChange<DecisionEdge>[]) => void;
   onConnect: (connection: Connection) => void;
@@ -30,10 +36,13 @@ function resolveStart(startNodeId: string | null, nodes: DecisionNode[]): string
 }
 
 /** Graph editor state, persisted to localStorage so work survives reloads. */
-export const useWorkflowStore = create<WorkflowGraph & WorkflowActions>()(
+export const useWorkflowStore = create<WorkflowState & WorkflowActions>()(
   persist(
     (set) => ({
       ...structuredClone(sampleWorkflow),
+      input: sampleInput,
+
+      setInput: (input) => set({ input }),
 
       onNodesChange: (changes) =>
         set((s) => {
@@ -74,12 +83,12 @@ export const useWorkflowStore = create<WorkflowGraph & WorkflowActions>()(
 
       setStartNode: (id) => set({ startNodeId: id }),
 
-      reset: () => set(structuredClone(sampleWorkflow)),
+      reset: () => set({ ...structuredClone(sampleWorkflow), input: sampleInput }),
     }),
     {
       name: "ai-decision-flow:workflow",
       version: 1,
-      partialize: ({ startNodeId, nodes, edges }) => ({ startNodeId, nodes, edges }),
+      partialize: ({ startNodeId, nodes, edges, input }) => ({ startNodeId, nodes, edges, input }),
     },
   ),
 );

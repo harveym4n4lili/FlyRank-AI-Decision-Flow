@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BRANCHES } from "@/lib/branches";
+import { findBranchEdge } from "@/lib/graph";
 import { useWorkflowStore } from "@/store/workflow-store";
 import type { Branch } from "@/types/workflow";
 
@@ -22,7 +23,7 @@ export function NodeInspector() {
 
   if (!node) {
     return (
-      <aside className="w-80 space-y-3 border-l bg-background p-4 text-sm text-muted-foreground">
+      <section className="space-y-3 p-4 text-sm text-muted-foreground">
         <h2 className="font-semibold text-foreground">Editing</h2>
         <ul className="list-disc space-y-1 pl-4">
           <li>Select a node to edit its prompt.</li>
@@ -30,17 +31,17 @@ export function NodeInspector() {
           <li>Each handle connects to one node, and loops aren&apos;t allowed.</li>
           <li>Press Backspace or Delete to remove a selected node or edge.</li>
         </ul>
-      </aside>
+      </section>
     );
   }
 
   const targetOf = (branch: Branch) => {
-    const edge = edges.find((e) => e.source === node.id && e.sourceHandle === branch);
+    const edge = findBranchEdge(edges, node.id, branch);
     return edge ? (nodes.find((n) => n.id === edge.target)?.data.label ?? "Unknown") : null;
   };
 
   return (
-    <aside className="w-80 space-y-4 overflow-y-auto border-l bg-background p-4">
+    <section className="space-y-4 p-4">
       <h2 className="text-sm font-semibold">Decision node</h2>
 
       <div className="space-y-2">
@@ -83,6 +84,6 @@ export function NodeInspector() {
           <Trash2 /> Delete
         </Button>
       </div>
-    </aside>
+    </section>
   );
 }

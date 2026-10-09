@@ -14,3 +14,6 @@ export const sampleWorkflow: WorkflowGraph = {
     createBranchEdge("classify", "sales", "no"),
   ],
 };
+
+export const sampleInput =
+  "Hi, I was charged twice for my subscription this month. Can you refund the duplicate payment?";

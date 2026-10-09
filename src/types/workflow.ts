@@ -22,3 +22,28 @@ export type WorkflowGraph = {
   nodes: DecisionNode[];
   edges: DecisionEdge[];
 };
+
+/** Payload of the "workflow/run" event: the graph plus the text every node decides about. */
+export type WorkflowRunRequest = {
+  graph: WorkflowGraph;
+  input: string;
+  /** Client-generated id naming the realtime channel this run reports progress on. */
+  runKey: string;
+};
+
+/** One executed node, in the order it ran. */
+export type ExecutionStep = {
+  order: number;
+  nodeId: string;
+  label: string;
+  prompt: string;
+  decision: Decision;
+  /** Node the selected edge led to, or null when that branch ends the workflow. */
+  nextNodeId: string | null;
+};
+
+export type WorkflowRunResult = {
+  steps: ExecutionStep[];
+};
+
+export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed";
