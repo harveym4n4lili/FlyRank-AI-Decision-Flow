@@ -20,7 +20,7 @@ A visual AI workflow builder. Each node is an AI decision step that answers a pr
 
 ## Getting started
 
-**Requirements:** Node.js 20+ and an OpenAI API key.
+**Requirements:** Node.js 20+ and an OpenAI API key. For the full checklist of manual steps (API key, approving install scripts, verification, production keys), see [docs/SETUP.md](docs/SETUP.md).
 
 ```bash
 npm install
@@ -46,6 +46,17 @@ The Inngest dev server finds the app at `http://localhost:3000/api/inngest`. Ope
 | `INNGEST_EVENT_KEY`   | prod     | Inngest Cloud event key                              |
 | `INNGEST_SIGNING_KEY` | prod     | Inngest Cloud signing key                            |
 
+## Using the editor
+
+- **Add node:** use the toolbar button. The new node appears in the middle of the view and is selected.
+- **Edit:** select a node to change its label and prompt in the side panel. The panel also shows where each branch leads.
+- **Connect:** drag from a node's green handle to make its **YES** path, or from its red handle for the **NO** path. Each handle connects to one node, and connections that would create a loop are refused, so every run ends.
+- **Start node:** the node marked **Start** is where execution begins. Use **Set as start** in the side panel to change it.
+- **Delete:** select a node or edge and press Backspace or Delete, or use the panel's **Delete** button.
+- **Persistence:** the graph is saved to localStorage automatically. **Reset** brings back the sample workflow.
+
+A branch with no outgoing edge ends the workflow.
+
 ## Project structure
 
 ```
@@ -56,16 +67,26 @@ src/
 │       ├── inngest/route.ts        # Serves Inngest functions (GET/POST/PUT)
 │       └── workflows/run/route.ts  # POST { graph } → sends "workflow/run" event
 ├── components/
-│   ├── flow/                       # React Flow canvas + custom decision node
+│   ├── flow/
+│   │   ├── flow-editor-loader.tsx  # Client-only loader (graph lives in localStorage)
+│   │   ├── flow-editor.tsx         # Canvas + inspector layout
+│   │   ├── flow-canvas.tsx         # React Flow canvas, toolbar, connection rules
+│   │   ├── decision-node.tsx       # Decision node with YES/NO handles
+│   │   ├── branch-edge.tsx         # "yes" / "no" edge types
+│   │   └── node-inspector.tsx      # Side panel for editing the selected node
 │   └── ui/                         # shadcn/ui components
 ├── inngest/
 │   ├── client.ts                   # Inngest client
 │   └── functions/                  # Inngest functions (run-workflow)
 ├── lib/
+│   ├── branches.ts                 # YES/NO branch colours and helpers
+│   ├── graph.ts                    # Node/edge factories, cycle + connection validation
 │   ├── env.ts                      # Server env access
 │   ├── openai.ts                   # OpenAI client
 │   └── sample-workflow.ts          # Starter graph
-└── types/workflow.ts               # Graph, node, edge and Decision types
+├── store/workflow-store.ts         # Zustand graph store, persisted to localStorage
+└── types/workflow.ts               # Graph, node, edge, Branch and Decision types
+docs/SETUP.md                       # Manual setup checklist
 ```
 
 ## Scripts
@@ -80,6 +101,6 @@ src/
 ## Roadmap
 
 - [x] **Phase 1: Setup.** Next.js, React Flow, Inngest, OpenAI SDK, shadcn, env config
-- [ ] **Phase 2: Foundations.** Interactive editor: add/connect nodes, edit prompts, YES/NO edge types, local graph state
+- [x] **Phase 2: Foundations.** Interactive editor: add/connect nodes, edit prompts, YES/NO edge types, local graph state
 - [ ] **Phase 3: Core.** Node → Inngest step, LLM YES/NO decisions, edge traversal, execution order tracking
 - [ ] **Phase 4: Polish.** Execution state, logs, save/load, JSON import/export, and more
