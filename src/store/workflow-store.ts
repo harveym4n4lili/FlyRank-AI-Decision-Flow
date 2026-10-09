@@ -28,6 +28,8 @@ type WorkflowActions = {
   deleteNode: (id: string) => void;
   setStartNode: (id: string) => void;
   reset: () => void;
+  /** Replaces the whole workflow, e.g. from an imported file. */
+  loadWorkflow: (graph: WorkflowGraph, input: string) => void;
 };
 
 /** Keeps the start pointer on an existing node after removals. */
@@ -84,6 +86,9 @@ export const useWorkflowStore = create<WorkflowState & WorkflowActions>()(
       setStartNode: (id) => set({ startNodeId: id }),
 
       reset: () => set({ ...structuredClone(sampleWorkflow), input: sampleInput }),
+
+      loadWorkflow: (graph, input) =>
+        set({ ...graph, startNodeId: resolveStart(graph.startNodeId, graph.nodes), input }),
     }),
     {
       name: "ai-decision-flow:workflow",

@@ -54,12 +54,21 @@ The Inngest dev server finds the app at `http://localhost:3000/api/inngest`. Ope
 - **Start node:** the node marked **Start** is where execution begins. Use **Set as start** in the side panel to change it.
 - **Delete:** select a node or edge and press Backspace or Delete, or use the panel's **Delete** button.
 - **Persistence:** the graph is saved to localStorage automatically. **Reset** brings back the sample workflow.
+- **Export / Import:** **Export** downloads the workflow (graph + input) as `workflow.json`; **Import** loads one back. Imported files are validated with the same rules as the editor, and problems are reported in a toast.
 
 A branch with no outgoing edge ends the workflow.
 
 ## Running a workflow
 
 Type the text you want the workflow to decide about, such as a customer message, into **Input** in the **Run workflow** panel, then click **Run**. Every node is asked its question about that same input. The panel streams progress as it happens and then lists the steps in the order they ran, with each node's YES/NO answer.
+
+### While it runs
+
+- **Visual execution state:** the node being decided glows amber with a spinner. Finished nodes get a green YES or red NO outline and icon. A node that failed turns red, and nodes the run didn't reach fade out.
+- **Animated active edges:** edges the run has followed are drawn bold, and they animate while the run is in progress. Branches it didn't take fade out.
+- **Execution log:** the **Execution log** tab under the canvas shows timestamped lines for each event: the run starting, the event being sent to Inngest, each node being decided and its answer, and the outcome.
+- **Execution history:** the **History** tab keeps the last 20 finished runs in localStorage. Click one to show its path, steps and log again.
+- **Retry failed nodes:** if a run fails at a node, **Retry from <node>** resumes from that node with the current prompts and input. Steps that already succeeded are kept and are not sent to the LLM again.
 
 ### How execution works
 
@@ -98,4 +107,4 @@ POST /api/workflows/run  →  validate graph → send "workflow/run" ─► run-
 - [x] **Phase 1: Setup.** Next.js, React Flow, Inngest, OpenAI SDK, shadcn, env config
 - [x] **Phase 2: Foundations.** Interactive editor: add/connect nodes, edit prompts, YES/NO edge types, local graph state
 - [x] **Phase 3: Core.** Node → Inngest step, LLM YES/NO decisions, edge traversal, execution order tracking
-- [ ] **Phase 4: Polish.** Execution state, logs, save/load, JSON import/export, and more
+- [x] **Phase 4: Polish.** Visual execution state, animated active edges, better node styling, execution log, execution history, JSON export/import, retry failed nodes, error toasts

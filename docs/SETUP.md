@@ -85,6 +85,14 @@ If **Run** is greyed out, the hint underneath says why: the input is empty, ther
 
 Progress reaches the browser through Inngest Realtime, which the dev server provides. You don't need to set anything up for it locally.
 
+While a run is in progress, you should also see the following:
+
+- [ ] The node being decided glows amber, and the edge leading to it animates. Finished nodes show a green YES or red NO outline, and branches the run didn't take fade out.
+- [ ] The **Execution log** tab under the canvas fills in with timestamped lines.
+- [ ] After the run finishes, it appears in the **History** tab. Click it to show that run again.
+- [ ] **Export** downloads `workflow.json`. **Reset**, then **Import** that file, and the workflow comes back.
+- [ ] To try **Retry**, temporarily set `OPENAI_API_KEY` to something invalid, restart `npm run dev`, and run the workflow. It fails at the first node with a 401. Restore the key, restart, then click **Retry from Classify**.
+
 ## 8. Production deploy (only if you deploy)
 
 You don't need any of this for local development or the assignment demo.
@@ -114,3 +122,6 @@ You don't need any of this for local development or the assignment demo.
 | The dashboard shows no apps | Start `npm run dev` before `npm run dev:inngest`, or sync manually (step 6). |
 | `inngest-cli` is not found or fails to run | Re-run the approve and rebuild commands in step 3. |
 | Saved workflow looks wrong after a code change | Click **Reset** in the editor toolbar to restore the sample graph. |
+| Import shows "Couldn't import workflow" | The toast explains what's wrong. The file must be a `workflow.json` from **Export** (`"version": 1`), and its edges can't reuse a YES/NO handle or create a loop. |
+| History is missing old runs | Only the last 20 runs are kept, and they're stored in this browser's localStorage. Clearing site data or switching browsers removes them. |
+| `Another next dev server is already running` | Another `npm run dev` is still running for this folder. Stop it (the message gives its PID), or just use the server that's already open at http://localhost:3000. |

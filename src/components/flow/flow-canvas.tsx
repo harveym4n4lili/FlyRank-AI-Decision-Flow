@@ -15,8 +15,10 @@ import { Plus, RotateCcw } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { edgeTypes } from "@/components/flow/branch-edge";
 import { DecisionNode } from "@/components/flow/decision-node";
+import { WorkflowFileButtons } from "@/components/flow/workflow-file-buttons";
 import { Button } from "@/components/ui/button";
 import { isValidBranchConnection } from "@/lib/graph";
+import { useRunStore } from "@/store/run-store";
 import { useWorkflowStore } from "@/store/workflow-store";
 import type { DecisionEdge } from "@/types/workflow";
 
@@ -55,6 +57,7 @@ export function FlowCanvas() {
   const handleReset = () => {
     if (!window.confirm("Replace the current workflow with the sample workflow?")) return;
     reset();
+    useRunStore.getState().clear();
     requestAnimationFrame(() => fitView());
   };
 
@@ -79,6 +82,7 @@ export function FlowCanvas() {
           <Button variant="outline" onClick={handleReset}>
             <RotateCcw /> Reset
           </Button>
+          <WorkflowFileButtons />
         </Panel>
         {nodes.length === 0 && (
           <Panel position="top-center" className="mt-20 text-sm text-muted-foreground">

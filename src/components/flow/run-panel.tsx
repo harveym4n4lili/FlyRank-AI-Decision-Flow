@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Play, RotateCw, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,23 +25,45 @@ export function RunPanel() {
   const startNodeId = useWorkflowStore((s) => s.startNodeId);
   const nodes = useWorkflowStore((s) => s.nodes);
   const edges = useWorkflowStore((s) => s.edges);
-  const { status, steps, error, activeNodeId, startRun } = useRunStore();
+  const { status, steps, error, activeNodeId, failedNodeId, viewingHistoryId, startRun, retryFromFailed, clear } =
+    useRunStore();
 
   const graph = { startNodeId, nodes, edges };
   const problem = validateRunnable(graph, input);
   const isRunning = status === "queued" || status === "running";
-  const activeLabel = nodes.find((n) => n.id === activeNodeId)?.data.label;
+  const labelOf = (id: string | null) => nodes.find((n) => n.id === id)?.data.label;
+  const activeLabel = labelOf(activeNodeId);
+
+  // Retry resumes the latest run at the node that failed, using the current prompts and input.
+  const failedLabel = labelOf(failedNodeId);
+  const canRetry =
+    status === "failed" &&
+    !viewingHistoryId &&
+    failedLabel !== undefined &&
+    validateRunnable({ ...graph, startNodeId: failedNodeId }, input) === null;
 
   return (
     <section className="space-y-3 p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Run workflow</h2>
         {status !== "idle" && (
-          <Badge variant={status === "failed" ? "destructive" : status === "completed" ? "default" : "secondary"}>
-            {STATUS_LABEL[status]}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <Badge variant={status === "failed" ? "destructive" : status === "completed" ? "default" : "secondary"}>
+              {STATUS_LABEL[status]}
+            </Badge>
+            {!isRunning && (
+              <Button variant="ghost" size="icon-xs" aria-label="Clear run results" onClick={clear}>
+                <X />
+              </Button>
+            )}
+          </div>
         )}
       </div>
+      {viewingHistoryId && (
+        <p className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+          Showing a past run from History. Run again or clear to return to the editor.
+        </p>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="run-input">Input</Label>
@@ -65,6 +87,15 @@ export function RunPanel() {
       {problem && <p className="text-xs text-muted-foreground">{problem}</p>}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {canRetry && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => retryFromFailed({ graph: toRunnableGraph(graph), input })}
+        >
+          <RotateCw /> Retry from {failedLabel}
+        </Button>
+      )}
 
       {steps.length > 0 && (
         <ol className="space-y-2">

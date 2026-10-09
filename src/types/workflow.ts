@@ -47,3 +47,26 @@ export type WorkflowRunResult = {
 };
 
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed";
+
+export type LogEntry = {
+  at: number;
+  level: "info" | "success" | "error";
+  message: string;
+};
+
+/** A finished run, kept in execution history. */
+export type RunHistoryEntry = {
+  id: string;
+  startedAt: number;
+  finishedAt: number;
+  status: "completed" | "failed";
+  input: string;
+  steps: ExecutionStep[];
+  error: string | null;
+  failedNodeId: string | null;
+  logs: LogEntry[];
+};
+
+/** How a node or edge looks given the current (or viewed) run. */
+export type NodeRunState = "idle" | "active" | "yes" | "no" | "failed" | "skipped";
+export type EdgeRunState = "idle" | "active" | "taken" | "skipped";
